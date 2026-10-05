@@ -1,2 +1,18 @@
 # PUProject_Attendance_Summery
 Faculty Easy Soft
+
+## 1. Introduction
+
+In an educational institution, monitoring student attendance and ensuring timely academic follow-up are important responsibilities of faculty members and mentors. Traditionally, attendance information is collected from different files or systems and manually compared with mentor allocation records. This process can be time-consuming, difficult to maintain, and prone to errors, particularly when data from multiple weeks and large numbers of students need to be analyzed. To address these challenges, this project proposes a **Mentor Allocation and Attendance Follow-Up Dashboard**, a web-based system designed to centralize student attendance monitoring and mentor follow-up activities.
+
+The proposed system provides an interactive dashboard through which faculty members can upload attendance data for the current and previous weeks. The system processes multiple file formats, matches student records using **Enrollment Number** and, when necessary, **Student Name**, and combines the attendance information with mentor allocation data. This enables the system to generate a consolidated student-level record containing details such as enrollment number, student name, mentor, course, semester, division, current-week attendance, previous-week attendance, attendance difference, and follow-up status. The matching mechanism also identifies unmatched records and name mismatches, helping faculty members maintain reliable student records.
+
+A major feature of the system is the identification of students whose attendance falls below a predefined threshold. The dashboard provides summary indicators such as total students, average attendance for the current and previous weeks, students below the threshold, completed and pending follow-ups, completion rate, matched records, unmatched records, and faculty count. The threshold can be configured by the user, allowing the system to support different institutional attendance requirements.
+
+The system also provides **interactive visualizations** for analyzing attendance and follow-up activities. Faculty-wise follow-up status, faculty completion rates, semester-wise attendance, attendance distribution, and faculty-specific attendance comparisons can be displayed through charts. Users can select an individual faculty member to drill down into the corresponding student records and follow-up information.
+
+Another important component is the **Student Follow-Up Table**, which allows users to search and filter records based on enrollment number, student name, faculty, course, semester, division, follow-up status, record matching status, and attendance threshold. Faculty members can enter follow-up remarks directly against individual students and save these remarks to the mentor spreadsheet. This creates a structured mechanism for documenting actions taken for students requiring attendance-related intervention.
+
+The project further supports **faculty-wise and student-wise reporting**, including filtering by semester, follow-up status, and attendance threshold. Reports can be printed or exported to Excel for documentation and administrative use. The system therefore provides an integrated platform for attendance analysis, mentor monitoring, student follow-up, visualization, and report generation.
+
+Overall, the proposed **Mentor Allocation and Attendance Follow-Up Dashboard** aims to reduce manual effort, improve the accuracy and accessibility of attendance information, support timely identification of students requiring intervention, and provide faculty and administrators with a centralized data-driven mechanism for monitoring student attendance and follow-up activities.
