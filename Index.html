@@ -1,0 +1,2053 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  *{box-sizing:border-box;font-family:system-ui,sans-serif}
+  body{margin:0;padding:0;background:#f5f7fa;color:#1e293b}
+  .container{max-width:1700px;margin:auto;padding:20px}
+
+  .app-head{display:flex;justify-content:space-between;align-items:center;
+            gap:24px;margin-bottom:22px;padding:16px 0 12px;
+            border-bottom:1px solid #e2e8f0;flex-wrap:wrap}
+  .app-head .title-block{text-align:left;min-width:0;flex:1 1 auto}
+  .app-head h1{margin:0;font-size:1.7rem;font-weight:800;
+               color:#1e3a8a;letter-spacing:-.5px;line-height:1.25}
+  .app-head .subtitle{margin-top:6px;font-size:.95rem;font-weight:600;
+                      color:#2563eb;letter-spacing:.3px}
+  .app-head .subtitle::before{content:"✦ ";color:#f59e0b}
+  .app-head .subtitle::after{content:" ✦";color:#f59e0b}
+  .head-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+                justify-content:flex-end;flex:0 0 auto;text-align:right}
+  #statusMsg{font-size:.82rem;color:#2563eb;min-height:18px;
+             text-align:right;line-height:1.35;max-width:420px}
+
+  .menubar{position:sticky;top:0;z-index:100;background:#fff;
+           border-bottom:2px solid #e2e8f0;margin:-22px -20px 20px -20px;
+           padding:0 20px;display:flex;gap:4px;overflow-x:auto;
+           box-shadow:0 2px 6px rgba(0,0,0,.04);justify-content:center}
+  .menubar button{background:transparent;color:#64748b;border:none;
+                  border-bottom:3px solid transparent;border-radius:0;
+                  padding:16px 20px;font-weight:600;font-size:.92rem;
+                  cursor:pointer;white-space:nowrap;transition:all .15s}
+  .menubar button:hover{color:#2563eb;background:#f8fafc}
+  .menubar button.active{color:#2563eb;border-bottom-color:#2563eb;background:#eff6ff}
+  .menubar .badge-count{display:inline-block;background:#e2e8f0;color:#334155;
+                        font-size:.7rem;padding:1px 7px;border-radius:999px;
+                        margin-left:6px;font-weight:700}
+  .menubar button.active .badge-count{background:#2563eb;color:#fff}
+
+  .tab-panel{display:none;animation:fadeIn .2s ease-in}
+  .tab-panel.active{display:block}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+  .card{background:#fff;border-radius:12px;padding:20px;margin-bottom:20px;
+        box-shadow:0 2px 8px rgba(0,0,0,.06)}
+  h2{margin:0 0 14px;font-size:1.1rem;display:flex;align-items:center;gap:8px}
+
+  .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  input,select,button{padding:8px 12px;border:1px solid #cbd5e1;
+                      border-radius:8px;font-size:.9rem;background:#fff}
+  button{background:#2563eb;color:#fff;border:none;cursor:pointer;font-weight:600}
+  button:hover{background:#1d4ed8}
+  button.secondary{background:#64748b}
+  button.secondary:hover{background:#475569}
+  button.danger{background:#dc2626}
+  button.danger:hover{background:#b91c1c}
+  button.success{background:#16a34a}
+  button.success:hover{background:#15803d}
+
+  .file-label{background:#f1f5f9;padding:8px 12px;border-radius:8px;
+              cursor:pointer;border:1px dashed #94a3b8;font-size:.85rem;
+              font-weight:600;color:#334155;transition:.15s}
+  .file-label:hover{background:#e2e8f0;border-color:#2563eb;color:#2563eb}
+  .file-label input{display:none}
+
+  table{width:100%;border-collapse:collapse;font-size:.85rem}
+  th,td{padding:8px 10px;border-bottom:1px solid #e2e8f0;text-align:left}
+  th{background:#f1f5f9;position:sticky;top:0;z-index:2;font-weight:700}
+  tr.row-low{background:#fee2e2}
+  tr.row-mid{background:#fef9c3}
+  tr.row-high{background:#dcfce7}
+  tr.match-name{box-shadow:inset 3px 0 0 #f59e0b}
+  tr.match-none{background:#fecaca !important}
+  #tableBody tr:focus-within td{background:#eff6ff !important;
+                                box-shadow:inset 0 0 0 1px #bfdbfe}
+
+  .summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));
+                gap:14px}
+  .summary-card{background:#f8fafc;padding:16px;border-radius:10px;
+                text-align:center;border:1px solid #e2e8f0;
+                transition:.15s;position:relative;overflow:hidden}
+  .summary-card:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.08)}
+  .summary-card .value{font-size:1.6rem;font-weight:700;color:#2563eb;line-height:1.1}
+  .summary-card .label{font-size:.75rem;color:#64748b;margin-top:4px;
+                       font-weight:600;text-transform:uppercase;letter-spacing:.3px}
+  .summary-card .sub{font-size:.72rem;color:#94a3b8;margin-top:2px}
+  .summary-card.green .value{color:#15803d}
+  .summary-card.orange .value{color:#a16207}
+  .summary-card.red .value{color:#b91c1c}
+  .summary-card.grey .value{color:#64748b}
+  .summary-card.purple .value{color:#7c3aed}
+  .summary-card.teal .value{color:#0d9488}
+
+  .viz-header{background:linear-gradient(135deg,#eff6ff,#f8fafc);
+              border:1px solid #dbeafe;border-radius:10px;
+              padding:14px 18px;margin-bottom:18px;
+              display:flex;justify-content:space-between;align-items:center;
+              gap:16px;flex-wrap:wrap}
+  .viz-header label{display:flex;align-items:center;gap:10px;
+                    font-size:.95rem;font-weight:600;color:#1e40af}
+  .viz-header select{min-width:340px;padding:10px 14px;font-size:.92rem;
+                     font-weight:600;color:#1e293b;background:#fff;
+                     border:2px solid #cbd5e1;cursor:pointer;transition:.15s}
+  .viz-header select:hover{border-color:#2563eb}
+  .viz-header select:focus{outline:none;border-color:#2563eb;
+                           box-shadow:0 0 0 3px #dbeafe}
+  .viz-context{font-size:.85rem;color:#475569;flex:1;text-align:right}
+  .viz-context b{color:#1e40af}
+
+  .charts-grid{display:grid;
+               grid-template-columns:repeat(auto-fit,minmax(420px,1fr));
+               gap:20px}
+  .chart-box{background:#f8fafc;padding:16px;border-radius:10px;
+             border:1px solid #e2e8f0;transition:.15s;
+             display:flex;flex-direction:column}
+  .chart-box:hover{border-color:#bfdbfe;box-shadow:0 4px 12px rgba(37,99,235,.08)}
+  .chart-box canvas{max-height:340px;flex:1}
+  .chart-hint{font-size:.75rem;color:#64748b;text-align:center;
+              margin-top:10px;font-style:italic;min-height:16px}
+
+  .table-wrap{overflow:auto;max-height:640px;border:1px solid #e2e8f0;border-radius:8px}
+  .remark-input{width:100%;padding:5px 6px;border:1px solid #cbd5e1;
+                border-radius:4px;font-size:.85rem;transition:.12s}
+  .remark-input:focus{outline:none;border-color:#2563eb;background:#fff;
+                      box-shadow:0 0 0 3px #dbeafe}
+  .filter-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px}
+
+  .badge{display:inline-block;padding:2px 8px;border-radius:999px;
+         font-size:.72rem;font-weight:600}
+  .badge-red{background:#fee2e2;color:#b91c1c}
+  .badge-green{background:#dcfce7;color:#15803d}
+  .badge-yellow{background:#fef9c3;color:#a16207}
+  .badge-blue{background:#dbeafe;color:#1e40af}
+  .badge-purple{background:#ede9fe;color:#6d28d9}
+  .chip{display:inline-flex;align-items:center;gap:6px;background:#dbeafe;
+        color:#1e40af;padding:4px 10px;border-radius:999px;
+        font-size:.78rem;font-weight:600}
+  .chip button{background:none;color:#1e40af;padding:0;font-size:1rem;
+               line-height:1;cursor:pointer;border:none;font-weight:700}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .small-note{font-size:.78rem;color:#64748b;line-height:1.5}
+  .kb-hint kbd{background:#1e293b;color:#fff;padding:1px 6px;border-radius:4px;
+               font-size:.75rem;font-family:monospace}
+
+  .faculty-panel{margin-top:20px;border:1px solid #e2e8f0;border-radius:10px;
+                 overflow:hidden;display:none;background:#fff}
+  .faculty-panel.open{display:block;animation:fadeIn .2s}
+  .fp-head{background:linear-gradient(135deg,#1e40af,#2563eb);color:#fff;
+           padding:14px 18px;display:flex;justify-content:space-between;
+           align-items:center;flex-wrap:wrap;gap:8px}
+  .fp-title{font-weight:700;font-size:1rem}
+  .fp-close{background:rgba(255,255,255,.2);border:none;color:#fff;
+            cursor:pointer;border-radius:6px;padding:5px 12px;font-size:.9rem;
+            font-weight:600}
+  .fp-close:hover{background:rgba(255,255,255,.35)}
+  .fp-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+            gap:1px;background:#e2e8f0}
+  .fp-stat{background:#f8fafc;padding:12px;text-align:center}
+  .fp-stat .v{font-size:1.35rem;font-weight:700;color:#1e40af}
+  .fp-stat .l{font-size:.72rem;color:#64748b;margin-top:2px}
+  .fp-body{padding:18px;max-height:460px;overflow:auto}
+  .fp-remark-list{display:grid;gap:8px}
+  .fp-remark{background:#f1f5f9;border-left:3px solid #2563eb;
+             padding:10px 12px;border-radius:6px}
+  .fp-remark .name{font-weight:600;font-size:.88rem}
+  .fp-remark .enr{font-size:.75rem;color:#64748b;margin-top:2px}
+  .fp-remark .txt{margin-top:6px;font-size:.85rem;color:#1e293b;
+                  padding:6px 10px;background:#fff;border-radius:4px;
+                  border-left:2px solid #22c55e}
+  .fp-empty{color:#94a3b8;font-style:italic;text-align:center;padding:24px}
+
+  .report-toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;
+                  margin-bottom:16px;padding:12px 16px;background:#f1f5f9;
+                  border-radius:10px;border:1px solid #e2e8f0}
+  .faculty-report-card{background:#fff;border:1px solid #e2e8f0;
+                       border-radius:10px;padding:16px;margin-bottom:14px;
+                       page-break-inside:avoid}
+  .frc-head{display:flex;justify-content:space-between;align-items:center;
+            gap:12px;flex-wrap:wrap;padding-bottom:10px;
+            border-bottom:2px solid #eff6ff;margin-bottom:12px}
+  .frc-name{font-weight:800;font-size:1.05rem;color:#1e3a8a}
+  .frc-chips{display:flex;gap:8px;flex-wrap:wrap}
+  .frc-chip{font-size:.75rem;font-weight:700;padding:4px 10px;border-radius:999px;
+            background:#f1f5f9;color:#334155}
+  .frc-chip.green{background:#dcfce7;color:#15803d}
+  .frc-chip.orange{background:#fef9c3;color:#a16207}
+  .frc-chip.red{background:#fee2e2;color:#b91c1c}
+  .frc-chip.blue{background:#dbeafe;color:#1e40af}
+  .student-report-table{width:100%;border-collapse:collapse;font-size:.82rem}
+  .student-report-table th,.student-report-table td{padding:6px 8px;
+    border-bottom:1px solid #e2e8f0;text-align:left}
+  .student-report-table th{background:#f8fafc;font-weight:700}
+
+  .report-summary-section{margin-bottom:22px}
+  .rs-title{margin:0 0 12px;font-size:.98rem;font-weight:800;color:#1e3a8a;
+            display:flex;align-items:center;gap:8px;
+            padding-bottom:6px;border-bottom:2px solid #eff6ff}
+  .stat-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+              gap:14px}
+  .stat-card{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;
+             padding:12px 14px;transition:.15s;page-break-inside:avoid}
+  .stat-card:hover{border-color:#bfdbfe;box-shadow:0 4px 12px rgba(37,99,235,.08);
+                   transform:translateY(-2px)}
+  .stat-card-head{font-weight:800;font-size:.88rem;color:#1e3a8a;
+                  padding-bottom:8px;margin-bottom:8px;
+                  border-bottom:1px dashed #cbd5e1;
+                  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .stat-list{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+  .stat-list li{font-size:.8rem;color:#475569;display:flex;
+                justify-content:space-between;align-items:baseline;gap:8px}
+  .stat-list li b{font-size:.92rem;color:#1e293b;font-weight:800}
+  .stat-list li.green b{color:#15803d}
+  .stat-list li.orange b{color:#a16207}
+  .stat-list li.red b{color:#b91c1c}
+
+  /* ===== Faculty Engagement ===== */
+  .engage-badges{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+  .engage-badge{display:inline-flex;align-items:center;gap:8px;
+                padding:8px 14px;border-radius:999px;font-weight:700;
+                font-size:.85rem}
+  .engage-badge.active{background:#dcfce7;color:#15803d;border:1px solid #86efac}
+  .engage-badge.inactive{background:#fef3c7;color:#92400e;border:1px solid #fcd34d}
+  .engage-badge .num{background:rgba(0,0,0,.08);border-radius:999px;
+                     padding:1px 9px;font-size:.78rem}
+  .engage-table{width:100%;border-collapse:collapse;font-size:.83rem;
+                border:1px solid #e2e8f0;border-radius:8px;overflow:hidden}
+  .engage-table th{background:#f8fafc;padding:9px 12px;text-align:left;
+                   font-weight:700;color:#334155;border-bottom:2px solid #e2e8f0;
+                   position:static}
+  .engage-table td{padding:8px 12px;border-bottom:1px solid #f1f5f9}
+  .engage-table tr:last-child td{border-bottom:none}
+  .engage-table tr.active-row{background:#f0fdf4}
+  .engage-table tr.inactive-row{background:#fffbeb}
+  .engage-table .pct-pill{display:inline-block;padding:2px 9px;border-radius:999px;
+                          font-weight:700;font-size:.75rem}
+  .pct-pill.high{background:#dcfce7;color:#15803d}
+  .pct-pill.mid{background:#fef9c3;color:#a16207}
+  .pct-pill.low{background:#fee2e2;color:#b91c1c}
+  .pct-pill.zero{background:#e2e8f0;color:#475569}
+
+  .fab-save{position:fixed;bottom:24px;right:24px;z-index:9999;
+            background:linear-gradient(135deg,#16a34a,#22c55e);
+            color:#fff;border:none;border-radius:999px;
+            padding:14px 22px;font-size:.95rem;font-weight:700;cursor:pointer;
+            box-shadow:0 8px 22px rgba(22,163,74,.45);
+            display:flex;align-items:center;gap:8px;transition:.2s}
+  .fab-save:hover{transform:translateY(-2px);
+                  box-shadow:0 12px 28px rgba(22,163,74,.55);
+                  background:linear-gradient(135deg,#15803d,#16a34a)}
+  .fab-save.saving{opacity:.7;cursor:wait}
+  .fab-save .fab-icon{font-size:1.15rem}
+
+  .app-footer{text-align:center;padding:24px 0 12px;color:#64748b;
+              font-size:.85rem;font-weight:600;border-top:1px solid #e2e8f0;
+              margin-top:20px}
+  .app-footer .heart{color:#ef4444}
+
+  @media print {
+    .app-head,.menubar,.head-actions,.report-toolbar,
+    .fab-save,.app-footer,.filter-row,.controls,.kb-hint{display:none !important}
+    body{background:#fff;padding:0}
+    .container{max-width:none;padding:0}
+    .card{box-shadow:none;border:none;padding:0;margin:0}
+    .faculty-report-card{box-shadow:none;border:1px solid #ccc;
+                         page-break-inside:avoid;margin-bottom:12px}
+    .student-report-table{font-size:.78rem}
+    .stat-card{box-shadow:none;border:1px solid #ccc;transform:none}
+  }
+
+  @media (max-width: 720px) {
+    .app-head{flex-direction:column;align-items:flex-start;gap:12px}
+    .app-head h1{font-size:1.3rem}
+    .head-actions{justify-content:flex-start;width:100%}
+    #statusMsg{text-align:left;max-width:none}
+    .menubar{justify-content:flex-start}
+    .fab-save{bottom:16px;right:16px;padding:12px 18px;font-size:.85rem}
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="app-head">
+    <div class="title-block">
+      <h1>🎓 Mentor Allocation &amp; Attendance Follow-Up</h1>
+      <div class="subtitle">Created by Prof. Payal Parekh</div>
+    </div>
+    <div class="head-actions">
+      <button onclick="loadAll()">🔄 Reload Data</button>
+      <span id="statusMsg"></span>
+    </div>
+  </div>
+
+  <nav class="menubar">
+    <button class="active" data-tab="dashboard" onclick="switchTab('dashboard', this)">📊 Dashboard</button>
+    <button data-tab="upload" onclick="switchTab('upload', this)">📁 Upload Data <span class="badge-count" id="tabCountUpload">0</span></button>
+    <button data-tab="visuals" onclick="switchTab('visuals', this)">📈 Visualizations</button>
+    <button data-tab="table" onclick="switchTab('table', this)">📋 Follow-Up Table <span class="badge-count" id="tabCountTable">0</span></button>
+    <button data-tab="reports" onclick="switchTab('reports', this)">📄 Reports</button>
+  </nav>
+
+  <div id="tab-dashboard" class="tab-panel active">
+    <div class="card">
+      <h2>📊 Dashboard Summary</h2>
+      <div class="summary-grid" id="summaryCards"></div>
+      <div class="small-note" style="margin-top:14px">
+        <b>Tip:</b> these numbers reflect the current filters.
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-upload" class="tab-panel">
+    <div class="card">
+      <h2>📁 Upload Attendance Files</h2>
+      <div class="controls">
+        <label class="file-label">📁 This Week Files (multiple)
+          <input type="file" id="thisWeekFile" accept=".xls,.xlsx,.csv,.html" multiple>
+        </label>
+        <label class="file-label">📁 Last Week Files (multiple)
+          <input type="file" id="lastWeekFile" accept=".xls,.xlsx,.csv,.html" multiple>
+        </label>
+        <label>Threshold %:
+          <input type="number" id="thresholdInput" value="75" min="0" max="100" style="width:75px">
+        </label>
+        <button class="success" onclick="saveAllFollowUps()">💾 Save Follow-Ups</button>
+        <button class="secondary" onclick="exportToExcel()">📤 Export Excel</button>
+        <button class="secondary" onclick="exportToSheet()">📊 Export to Sheet</button>
+        <button class="danger" onclick="clearWeek('this')">🗑 Clear This Week</button>
+        <button class="danger" onclick="clearWeek('last')">🗑 Clear Last Week</button>
+      </div>
+      <div class="small-note" style="margin-top:12px">
+        <b>Multiple files supported:</b> upserted by Enrollment No.<br>
+        <b>Match rule:</b> Enrollment No. → fallback to Student Name.
+        <span class="badge badge-blue">Enroll</span>
+        <span class="badge badge-yellow">Name</span>
+        <span class="badge badge-red">No match</span>
+      </div>
+      <div class="chips" id="activeChips"></div>
+    </div>
+  </div>
+
+  <div id="tab-visuals" class="tab-panel">
+    <div class="card">
+      <h2>📈 Interactive Visualizations</h2>
+      <div class="viz-header">
+        <label>🎯 Focus Faculty:
+          <select id="vizFaculty" onchange="onVizFacultyChange()">
+            <option value="">📊 All Faculty — aggregate overview</option>
+          </select>
+        </label>
+        <div class="viz-context" id="vizContext"></div>
+      </div>
+      <div class="charts-grid" id="vizGrid"></div>
+      <div class="faculty-panel" id="facultyPanel">
+        <div class="fp-head">
+          <div class="fp-title" id="fpTitle">Faculty</div>
+          <button class="fp-close" onclick="closeFacultyPanel()">✕ Close</button>
+        </div>
+        <div class="fp-stats" id="fpStats"></div>
+        <div class="fp-body" id="fpBody"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-table" class="tab-panel">
+    <div class="card">
+      <h2>📋 Student Follow-Up Table</h2>
+      <div class="filter-row">
+        <input type="text" id="searchInput" placeholder="🔍 Search enrollment / name...">
+        <select id="filterFaculty"><option value="">All Faculty</option></select>
+        <select id="filterCourse"><option value="">All Courses</option></select>
+        <select id="filterSem"><option value="">All Semesters</option></select>
+        <select id="filterDivision"><option value="">All Divisions</option></select>
+        <select id="filterFollowUp">
+          <option value="">All Follow-Up</option>
+          <option value="has">Has Remark</option>
+          <option value="none">No Remark</option>
+        </select>
+        <select id="filterMatch">
+          <option value="">All Matches</option>
+          <option value="enrollment">Enrollment Match</option>
+          <option value="name-only">Name Only</option>
+          <option value="none">Unmatched</option>
+        </select>
+        <label><input type="checkbox" id="filterThreshold"> Only Below Threshold</label>
+        <button class="secondary" onclick="clearFilters()">Clear Filters</button>
+      </div>
+      <div class="small-note kb-hint" style="margin-bottom:10px">
+        ⌨️ <b>Keyboard:</b>
+        <kbd>Enter</kbd> or <kbd>↓</kbd> next row ·
+        <kbd>↑</kbd> previous row ·
+        <kbd>→</kbd> next (at end of text) ·
+        <kbd>←</kbd> previous (at start of text)
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Enrollment</th><th>Student Name</th><th>Mentor</th>
+              <th>Course</th><th>Sem</th><th>Division</th>
+              <th>This Week %</th><th>Last Week %</th><th>Diff</th>
+              <th>Match</th><th>Threshold</th><th>Follow-Up Remark</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-reports" class="tab-panel">
+    <div class="card">
+      <h2>📄 Reports</h2>
+      <div class="report-toolbar">
+        <label><b>Report Type:</b>
+          <select id="reportType" onchange="renderReport()" style="margin-left:6px">
+            <option value="faculty">Faculty-wise Report</option>
+            <option value="student">Student-wise Report</option>
+          </select>
+        </label>
+        <select id="reportFollowUpFilter" onchange="renderReport()">
+          <option value="">All Students</option>
+          <option value="has">Only With Follow-Up</option>
+          <option value="none">Only Pending Follow-Up</option>
+        </select>
+        <select id="reportSemFilter" onchange="renderReport()">
+          <option value="">All Semesters</option>
+        </select>
+        <label style="margin-left:auto">
+          <input type="checkbox" id="reportBelowOnly" onchange="renderReport()">
+          Below Threshold only
+        </label>
+        <button class="secondary" onclick="printReport()">🖨 Print</button>
+        <button class="secondary" onclick="exportReportExcel()">📤 Export to Excel</button>
+      </div>
+      <div class="report-meta" id="reportMeta"
+           style="font-size:.85rem;color:#475569;font-weight:600;margin-bottom:14px"></div>
+
+      <!-- ====== Faculty Engagement — who gave remarks ====== -->
+      <div id="facultyEngagement" class="report-summary-section"
+           style="display:none">
+        <div class="rs-title">👨‍🏫 Faculty Engagement — Who Is Giving Remarks</div>
+        <div id="facultyEngagementBody"></div>
+      </div>
+
+      <!-- ====== Overall / Faculty / Semester summary cards ====== -->
+      <div id="reportSummary"></div>
+
+      <div id="reportContainer"></div>
+    </div>
+  </div>
+
+  <div class="app-footer">
+    Made with <span class="heart">♥</span> — Created by <b>Prof. Payal Parekh</b>
+  </div>
+
+</div>
+
+<button class="fab-save" id="fabSave" onclick="saveAllFollowUps()"
+        title="Save all follow-up remarks to the mentor spreadsheet">
+  <span class="fab-icon">💾</span> Save Follow-Ups
+</button>
+
+<script>
+/* =========================================================
+   STATE
+   ========================================================= */
+var mentors = [];
+var mentorByEnr = {};
+var mentorByName = {};
+var thisWeekData = [];
+var lastWeekData = [];
+var mergedData = [];
+var savedFollowUps = {};
+var charts = {};
+var threshold = 75;
+var activeFaculty = null;
+var currentTab = 'dashboard';
+
+var $ = function (id) { return document.getElementById(id); };
+var setStatus = function (m) { $('statusMsg').textContent = m; };
+
+function escapeHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+    return ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c];
+  });
+}
+function shortName(n, max) {
+  max = max || 34;
+  n = String(n || '');
+  return n.length > max ? n.substring(0, max - 1) + '…' : n;
+}
+function normEnr(v) {
+  if (v === null || v === undefined) return '';
+  return String(v).trim().replace(/\.0+$/, '').replace(/[\s\u00A0]+/g, '').toUpperCase();
+}
+function normName(v) {
+  if (v === null || v === undefined) return '';
+  return String(v).toUpperCase().replace(/\s+/g, ' ').trim();
+}
+
+/* =========================================================
+   ★★★ KEYBOARD NAVIGATION  (bulletproof — direct listeners)
+   ---------------------------------------------------------
+   Listeners are attached DIRECTLY to each input right after
+   renderTable() writes it to the DOM. No event delegation,
+   no inline handlers, no reliance on CSP.
+   ========================================================= */
+function attachRemarkKeyHandlers() {
+  var inputs = document.querySelectorAll('#tableBody .remark-input');
+  for (var i = 0; i < inputs.length; i++) {
+    inputs[i].addEventListener('keydown', handleRemarkKey, false);
+    inputs[i].addEventListener('change', handleRemarkChange, false);
+  }
+}
+
+function handleRemarkChange(e) {
+  var inp = e.currentTarget;
+  var enr = inp.getAttribute('data-enr');
+  if (!enr) return;
+  updateFollowUp(enr, inp.value);
+}
+
+function handleRemarkKey(e) {
+  var inp = e.currentTarget;
+  var all = document.querySelectorAll('#tableBody .remark-input');
+  var idx = -1;
+  for (var i = 0; i < all.length; i++) {
+    if (all[i] === inp) { idx = i; break; }
+  }
+  if (idx === -1) return;
+
+  var k = e.key || '';
+  var kc = e.keyCode || 0;
+  var move = 0;
+
+  if (k === 'Enter' || kc === 13 || k === 'ArrowDown' || kc === 40) {
+    move = 1;
+  } else if (k === 'ArrowUp' || kc === 38) {
+    move = -1;
+  } else if (k === 'ArrowRight' || kc === 39) {
+    var s1 = inp.selectionStart, e1 = inp.selectionEnd;
+    if (s1 === e1 && e1 === inp.value.length) move = 1; else return;
+  } else if (k === 'ArrowLeft' || kc === 37) {
+    var s2 = inp.selectionStart, e2 = inp.selectionEnd;
+    if (s2 === e2 && s2 === 0) move = -1; else return;
+  } else {
+    return;
+  }
+
+  e.preventDefault();
+  e.stopPropagation();
+
+  // Force-commit the current value BEFORE moving focus
+  try {
+    var enr = inp.getAttribute('data-enr');
+    if (enr) {
+      var nk = normEnr(enr);
+      if (savedFollowUps[nk] !== inp.value) {
+        savedFollowUps[nk] = inp.value;
+        for (var r = 0; r < mergedData.length; r++) {
+          if (mergedData[r].enrollment === enr) {
+            mergedData[r].followUp = inp.value;
+            break;
+          }
+        }
+        persistLocal();
+      }
+    }
+  } catch (err) {}
+
+  var targetIdx = idx + move;
+  if (targetIdx < 0 || targetIdx >= all.length) {
+    try { inp.blur(); } catch (x) {}
+    return;
+  }
+
+  var target = all[targetIdx];
+
+  // Focus TWICE — once now, once after 10ms — to defeat any focus steal
+  var doFocus = function () {
+    try {
+      target.focus();
+      var L = target.value.length;
+      try { target.setSelectionRange(L, L); } catch (x) {}
+      try { target.scrollIntoView({ block: 'nearest' }); } catch (x) {}
+    } catch (x) {}
+  };
+  doFocus();
+  setTimeout(doFocus, 10);
+}
+
+/* =========================================================
+   TAB SWITCHING
+   ========================================================= */
+function switchTab(name, btn) {
+  currentTab = name;
+  document.querySelectorAll('.menubar button').forEach(function (b) { b.classList.remove('active'); });
+  if (btn) btn.classList.add('active');
+  else {
+    var b2 = document.querySelector('.menubar button[data-tab="' + name + '"]');
+    if (b2) b2.classList.add('active');
+  }
+
+  document.querySelectorAll('.tab-panel').forEach(function (p) { p.classList.remove('active'); });
+  var panel = $('tab-' + name);
+  if (panel) panel.classList.add('active');
+
+  if (name === 'visuals') {
+    populateVizFaculty();
+    setTimeout(renderVizCharts, 50);
+  }
+  if (name === 'reports') {
+    populateReportFilters();
+    renderReport();
+  }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* =========================================================
+   BOOTSTRAP
+   ========================================================= */
+window.addEventListener('DOMContentLoaded', function () {
+  try {
+    var c = JSON.parse(localStorage.getItem('mentorAppStateV2') || '{}');
+    if (c.mentors) mentors = c.mentors;
+    if (c.thisWeekData) thisWeekData = c.thisWeekData;
+    if (c.lastWeekData) lastWeekData = c.lastWeekData;
+    if (c.savedFollowUps) savedFollowUps = c.savedFollowUps;
+    if (c.threshold) { threshold = c.threshold; $('thresholdInput').value = threshold; }
+    buildIndexes();
+  } catch (e) {}
+
+  $('thisWeekFile').addEventListener('change', function (e) { handleFiles(e.target.files, 'this'); });
+  $('lastWeekFile').addEventListener('change', function (e) { handleFiles(e.target.files, 'last'); });
+  $('thresholdInput').addEventListener('change', function () {
+    threshold = parseFloat($('thresholdInput').value) || 75;
+    mergeData();
+  });
+
+  ['searchInput','filterFaculty','filterCourse','filterSem','filterDivision',
+   'filterFollowUp','filterMatch','filterThreshold']
+    .forEach(function (id) {
+      $(id).addEventListener('input', function () {
+        renderTable(); renderChips();
+        if (currentTab === 'visuals') renderVizCharts();
+      });
+    });
+
+  loadAll();
+});
+
+function persistLocal() {
+  try {
+    localStorage.setItem('mentorAppStateV2', JSON.stringify({
+      mentors: mentors, thisWeekData: thisWeekData, lastWeekData: lastWeekData,
+      savedFollowUps: savedFollowUps, threshold: threshold
+    }));
+  } catch (e) {}
+}
+
+/* =========================================================
+   SERVER LOAD
+   ========================================================= */
+function loadAll() {
+  setStatus('Loading mentor allocation, saved attendance & remarks...');
+  google.script.run.withSuccessHandler(function (resM) {
+    if (!resM.success) { setStatus('❌ Mentor: ' + resM.error); return; }
+    mentors = resM.data;
+    buildIndexes();
+
+    google.script.run.withSuccessHandler(function (resU) {
+      if (resU.success) {
+        thisWeekData = resU.thisWeek || [];
+        lastWeekData = resU.lastWeek || [];
+      }
+      google.script.run.withSuccessHandler(function (resR) {
+        if (resR.success) savedFollowUps = resR.data || {};
+        setStatus('✅ ' + mentors.length + ' mentor records · ' +
+                  thisWeekData.length + ' this-week · ' +
+                  lastWeekData.length + ' last-week.');
+        persistLocal();
+        mergeData();
+      }).getSavedFollowUps();
+    }).getUploadedData();
+  }).getMentorAllocation();
+}
+
+function buildIndexes() {
+  mentorByEnr = {}; mentorByName = {};
+  mentors.forEach(function (m) {
+    var e = normEnr(m.enrollment); if (e) mentorByEnr[e] = m;
+    var n = normName(m.studentName); if (n) mentorByName[n] = m;
+  });
+}
+
+/* =========================================================
+   MULTIPLE FILE HANDLING
+   ========================================================= */
+function handleFiles(fileList, week) {
+  var files = Array.prototype.slice.call(fileList);
+  if (!files.length) return;
+  setStatus('Reading ' + files.length + ' file(s) for ' + week + '...');
+
+  var allStudents = [];
+  var done = 0;
+
+  files.forEach(function (file) {
+    var reader = new FileReader();
+    reader.onload = function (e) {
+      var buffer = e.target.result;
+      var text = '';
+      try { text = new TextDecoder('utf-8').decode(buffer); } catch (err) {}
+      var rows;
+      if (text.indexOf('<table') !== -1 || text.indexOf('<TABLE') !== -1) {
+        rows = parseHTMLTable(text);
+      } else {
+        var wb = XLSX.read(buffer, { type: 'array' });
+        rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '' });
+      }
+      var students = extractStudents(rows);
+      allStudents = allStudents.concat(students);
+      done++;
+      if (done === files.length) {
+        var target = week === 'this' ? thisWeekData : lastWeekData;
+        var map = {};
+        target.forEach(function (s) { map[normEnr(s.enrollment)] = s; });
+        allStudents.forEach(function (s) {
+          var key = normEnr(s.enrollment);
+          if (key) map[key] = s;
+        });
+        var merged = Object.keys(map).map(function (k) { return map[k]; });
+        if (week === 'this') thisWeekData = merged;
+        else lastWeekData = merged;
+
+        google.script.run
+          .withSuccessHandler(function (res) {
+            var added = res.added !== undefined ? ' (' + res.added + ' new)' : '';
+            setStatus('✅ ' + (week === 'this' ? 'This' : 'Last') +
+                      ' week now has ' + merged.length + ' records' + added + '.');
+            persistLocal();
+            mergeData();
+          })
+          .withFailureHandler(function (err) {
+            setStatus('⚠ Local only: ' + err.message);
+            persistLocal();
+            mergeData();
+          })
+          .saveUploadedData(week, allStudents, files.map(function (f) { return f.name; }).join(', '));
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+function parseHTMLTable(html) {
+  var doc = new DOMParser().parseFromString(html, 'text/html');
+  var table = doc.querySelector('table');
+  if (!table) return [];
+  var grid = [];
+  var trs = table.querySelectorAll('tr');
+  trs.forEach(function (tr, r) {
+    if (!grid[r]) grid[r] = [];
+    var c = 0;
+    tr.querySelectorAll('td,th').forEach(function (td) {
+      while (grid[r][c] !== undefined) c++;
+      var value = td.innerText.trim();
+      var rs = Math.max(1, parseInt(td.getAttribute('rowspan') || '1', 10));
+      var cs = Math.max(1, parseInt(td.getAttribute('colspan') || '1', 10));
+      for (var i = 0; i < rs; i++) {
+        for (var j = 0; j < cs; j++) {
+          if (!grid[r + i]) grid[r + i] = [];
+          grid[r + i][c + j] = value;
+        }
+      }
+      c += cs;
+    });
+  });
+  var maxCols = grid.reduce(function (m, row) { return Math.max(m, row.length); }, 0);
+  return grid.map(function (row) {
+    var out = [];
+    for (var i = 0; i < maxCols; i++) out.push(row[i] !== undefined ? row[i] : '');
+    return out;
+  });
+}
+
+/* =========================================================
+   MATCHING
+   ========================================================= */
+function findMentorFor(student) {
+  var enrKey = normEnr(student.enrollment);
+  var nameKey = normName(student.name);
+  var enrMatch = enrKey ? mentorByEnr[enrKey] : null;
+  var nameMatch = nameKey ? mentorByName[nameKey] : null;
+
+  if (enrMatch && nameMatch && enrMatch === nameMatch)
+    return { mentor: enrMatch, matchType: 'enrollment' };
+  if (enrMatch) {
+    var mismatch = enrMatch.studentName && normName(enrMatch.studentName) !== nameKey;
+    return { mentor: enrMatch, matchType: 'enrollment', nameMismatch: !!mismatch };
+  }
+  if (nameMatch) return { mentor: nameMatch, matchType: 'name-only' };
+  return { mentor: null, matchType: 'none' };
+}
+
+/* =========================================================
+   MERGE
+   ========================================================= */
+function mergeData() {
+  var lastMap = {};
+  lastWeekData.forEach(function (s) { lastMap[normEnr(s.enrollment)] = s; });
+
+  mergedData = thisWeekData.map(function (s) {
+    var res = findMentorFor(s);
+    var m = res.mentor, matchType = res.matchType, nameMismatch = res.nameMismatch;
+    var last = lastMap[normEnr(s.enrollment)] || {};
+    var thisP = s.p || 0;
+    var lastP = last.p || 0;
+
+    return {
+      enrollment: s.enrollment,
+      studentName: s.name || (m && m.studentName) || '',
+      mentor: m ? m.mentor : 'Unassigned',
+      course: (m && m.course) || s.course || '',
+      sem:    (m && m.sem)    || s.sem    || '',
+      division: s.division || '',
+      thisWeekP: thisP,
+      lastWeekP: lastP,
+      diff: thisP - lastP,
+      followUp: savedFollowUps[normEnr(s.enrollment)] || '',
+      thresholdFlag: thisP < threshold,
+      matchType: matchType || 'none',
+      nameMismatch: !!nameMismatch,
+      source: m ? m.source : ''
+    };
+  });
+
+  renderAll();
+}
+
+/* =========================================================
+   RENDER
+   ========================================================= */
+function renderAll() {
+  updateFilterOptions();
+  renderSummary();
+  renderTable();
+  renderChips();
+  updateTabBadges();
+  if (activeFaculty) renderFacultyPanel(activeFaculty);
+  if (currentTab === 'visuals') renderVizCharts();
+  if (currentTab === 'reports') renderReport();
+  persistLocal();
+}
+
+function updateTabBadges() {
+  $('tabCountUpload').textContent = thisWeekData.length + lastWeekData.length;
+  $('tabCountTable').textContent = mergedData.length;
+}
+
+function updateFilterOptions() {
+  var fill = function (id, items, ph) {
+    var sel = $(id); var cur = sel.value;
+    sel.innerHTML = '<option value="">' + ph + '</option>' +
+      items.map(function (i) { return '<option>' + escapeHtml(i) + '</option>'; }).join('');
+    if (items.indexOf(cur) !== -1) sel.value = cur;
+  };
+  var uniq = function (arr) {
+    var seen = {}, out = [];
+    arr.forEach(function (x) { if (x && !seen[x]) { seen[x] = 1; out.push(x); } });
+    return out;
+  };
+  fill('filterFaculty',  uniq(mergedData.map(function (d) { return d.mentor; })).sort(), 'All Faculty');
+  fill('filterCourse',   uniq(mergedData.map(function (d) { return d.course; })).sort(), 'All Courses');
+  fill('filterSem',      uniq(mergedData.map(function (d) { return d.sem; })).sort(), 'All Semesters');
+  fill('filterDivision', uniq(mergedData.map(function (d) { return d.division; })).sort(), 'All Divisions');
+}
+
+function getFilteredData() {
+  var search = $('searchInput').value.toLowerCase();
+  var fac = $('filterFaculty').value;
+  var crs = $('filterCourse').value;
+  var sem = $('filterSem').value;
+  var div = $('filterDivision').value;
+  var fu  = $('filterFollowUp').value;
+  var mt  = $('filterMatch').value;
+  var onlyT = $('filterThreshold').checked;
+
+  return mergedData.filter(function (d) {
+    if (search && d.enrollment.toLowerCase().indexOf(search) === -1 &&
+        d.studentName.toLowerCase().indexOf(search) === -1) return false;
+    if (fac && d.mentor !== fac) return false;
+    if (crs && d.course !== crs) return false;
+    if (sem && d.sem !== sem) return false;
+    if (div && d.division !== div) return false;
+    if (fu === 'has' && !d.followUp.trim()) return false;
+    if (fu === 'none' && d.followUp.trim()) return false;
+    if (mt && d.matchType !== mt) return false;
+    if (onlyT && !d.thresholdFlag) return false;
+    return true;
+  });
+}
+
+function renderTable() {
+  var data = getFilteredData();
+  var html = '';
+  data.forEach(function (d) {
+    var cls = '';
+    if (d.matchType === 'none') cls = 'match-none';
+    else if (d.matchType === 'name-only') cls = 'match-name';
+    else cls = d.thisWeekP < 50 ? 'row-low' : d.thisWeekP < 75 ? 'row-mid' : 'row-high';
+
+    var badge = d.thresholdFlag
+      ? '<span class="badge badge-red">Below</span>'
+      : '<span class="badge badge-green">OK</span>';
+
+    var matchBadge =
+      d.matchType === 'enrollment' ? '<span class="badge badge-blue">Enroll</span>' :
+      d.matchType === 'name-only'  ? '<span class="badge badge-yellow">Name</span>' :
+      '<span class="badge badge-red">No match</span>';
+
+    var valAttr = String(d.followUp || '').replace(/&/g, '&amp;')
+                                           .replace(/"/g, '&quot;')
+                                           .replace(/</g, '&lt;');
+
+    html += '<tr class="' + cls + '">' +
+      '<td>' + escapeHtml(d.enrollment) + '</td>' +
+      '<td>' + escapeHtml(d.studentName) + (d.nameMismatch ? ' <span class="badge badge-yellow" title="Name mismatch">!</span>' : '') + '</td>' +
+      '<td>' + escapeHtml(d.mentor) + '</td>' +
+      '<td>' + escapeHtml(d.course) + '</td>' +
+      '<td>' + escapeHtml(d.sem) + '</td>' +
+      '<td>' + escapeHtml(d.division) + '</td>' +
+      '<td>' + d.thisWeekP.toFixed(2) + '%</td>' +
+      '<td>' + d.lastWeekP.toFixed(2) + '%</td>' +
+      '<td>' + (d.diff > 0 ? '+' : '') + d.diff.toFixed(2) + '%</td>' +
+      '<td>' + matchBadge + '</td>' +
+      '<td>' + badge + '</td>' +
+      '<td><input type="text" class="remark-input" data-enr="' + escapeHtml(d.enrollment) + '" value="' + valAttr + '"></td>' +
+    '</tr>';
+  });
+  $('tableBody').innerHTML = html;
+
+  // ★ Attach keyboard + change listeners IMMEDIATELY after DOM is built
+  attachRemarkKeyHandlers();
+}
+
+function updateFollowUp(enrollment, value) {
+  var row = null;
+  for (var i = 0; i < mergedData.length; i++) {
+    if (mergedData[i].enrollment === enrollment) { row = mergedData[i]; break; }
+  }
+  if (!row) return;
+  if (row.followUp === value) return;
+  row.followUp = value;
+  savedFollowUps[normEnr(enrollment)] = value;
+  persistLocal();
+  renderSummary();
+  if (activeFaculty) renderFacultyPanel(activeFaculty);
+  if (currentTab === 'visuals') renderVizCharts();
+  if (currentTab === 'reports') renderReport();
+}
+
+/* =========================================================
+   SUMMARY CARDS
+   ========================================================= */
+function renderSummary() {
+  var data = getFilteredData();
+  var total = data.length;
+  var thisWeekCount = thisWeekData.length;
+  var lastWeekCount = lastWeekData.length;
+
+  var avgThis = total ? data.reduce(function (s, d) { return s + d.thisWeekP; }, 0) / total : 0;
+  var avgLast = total ? data.reduce(function (s, d) { return s + d.lastWeekP; }, 0) / total : 0;
+  var below   = data.filter(function (d) { return d.thresholdFlag; }).length;
+  var done    = data.filter(function (d) { return d.followUp.trim(); }).length;
+  var pending = total - done;
+  var complRate = total ? (done / total * 100) : 0;
+
+  var matchEnr  = data.filter(function (d) { return d.matchType === 'enrollment'; }).length;
+  var matchName = data.filter(function (d) { return d.matchType === 'name-only'; }).length;
+  var noMatch   = data.filter(function (d) { return d.matchType === 'none'; }).length;
+  var matched   = matchEnr + matchName;
+  var matchRate = total ? (matched / total * 100) : 0;
+
+  var facSet = {};
+  data.forEach(function (d) { if (d.mentor && d.mentor !== 'Unassigned') facSet[d.mentor] = 1; });
+  var facultyCount = Object.keys(facSet).length;
+
+  $('summaryCards').innerHTML =
+    '<div class="summary-card"><div class="value">' + total + '</div><div class="label">Total Students</div><div class="sub">(this week merged)</div></div>' +
+    '<div class="summary-card teal"><div class="value">' + thisWeekCount + '</div><div class="label">This Week Students</div><div class="sub">rows uploaded</div></div>' +
+    '<div class="summary-card purple"><div class="value">' + lastWeekCount + '</div><div class="label">Last Week Students</div><div class="sub">rows uploaded</div></div>' +
+    '<div class="summary-card"><div class="value">' + avgThis.toFixed(1) + '%</div><div class="label">Avg This Week</div></div>' +
+    '<div class="summary-card grey"><div class="value">' + avgLast.toFixed(1) + '%</div><div class="label">Avg Last Week</div></div>' +
+    '<div class="summary-card red"><div class="value">' + below + '</div><div class="label">Below Threshold</div><div class="sub">&lt; ' + threshold + '%</div></div>' +
+    '<div class="summary-card green"><div class="value">' + done + '</div><div class="label">Follow-Up Done</div></div>' +
+    '<div class="summary-card orange"><div class="value">' + pending + '</div><div class="label">Follow-Up Pending</div></div>' +
+    '<div class="summary-card ' + (complRate >= 75 ? 'green' : complRate >= 50 ? 'orange' : 'red') + '"><div class="value">' + complRate.toFixed(1) + '%</div><div class="label">Completion Rate</div></div>' +
+    '<div class="summary-card"><div class="value">' + matched + '</div><div class="label">Matched</div><div class="sub">Enroll ' + matchEnr + ' · Name ' + matchName + '</div></div>' +
+    '<div class="summary-card ' + (noMatch > 0 ? 'red' : 'green') + '"><div class="value">' + noMatch + '</div><div class="label">Unmatched</div><div class="sub">Match rate ' + matchRate.toFixed(1) + '%</div></div>' +
+    '<div class="summary-card purple"><div class="value">' + facultyCount + '</div><div class="label">Faculty Count</div></div>';
+}
+
+/* =========================================================
+   CHIPS
+   ========================================================= */
+function renderChips() {
+  var chips = [];
+  var add = function (label, clearFn) {
+    chips.push('<span class="chip">' + escapeHtml(label) + '<button onclick="' + clearFn + '">✕</button></span>');
+  };
+
+  var search = $('searchInput').value;
+  var fac = $('filterFaculty').value;
+  var crs = $('filterCourse').value;
+  var sem = $('filterSem').value;
+  var div = $('filterDivision').value;
+  var fu  = $('filterFollowUp').value;
+  var mt  = $('filterMatch').value;
+  var onlyT = $('filterThreshold').checked;
+
+  if (search) add('Search: "' + search + '"', "clearField('searchInput')");
+  if (fac)   add('Faculty: ' + fac, "clearField('filterFaculty')");
+  if (crs)   add('Course: ' + crs,  "clearField('filterCourse')");
+  if (sem)   add('Sem: ' + sem,     "clearField('filterSem')");
+  if (div)   add('Div: ' + div,     "clearField('filterDivision')");
+  if (fu)    add('Follow-Up: ' + fu, "clearField('filterFollowUp')");
+  if (mt)    add('Match: ' + mt,     "clearField('filterMatch')");
+  if (onlyT) add('Below Threshold',  "uncheckThreshold()");
+
+  $('activeChips').innerHTML = chips.length
+    ? chips.join('') : '<span class="small-note">No filters active — showing everything.</span>';
+}
+function clearField(id) {
+  $(id).value = '';
+  if (id === 'filterFaculty') closeFacultyPanel();
+  renderAll();
+}
+function uncheckThreshold() { $('filterThreshold').checked = false; renderAll(); }
+
+/* =========================================================
+   VISUALIZATIONS
+   ========================================================= */
+function populateVizFaculty() {
+  var sel = $('vizFaculty');
+  var cur = sel.value;
+  var seen = {}, items = [];
+  mergedData.forEach(function (d) {
+    if (d.mentor && d.mentor !== 'Unassigned' && !seen[d.mentor]) {
+      seen[d.mentor] = 1; items.push(d.mentor);
+    }
+  });
+  items.sort();
+  sel.innerHTML = '<option value="">📊 All Faculty — aggregate overview</option>' +
+    items.map(function (f) { return '<option value="' + escapeHtml(f) + '">' + escapeHtml(f) + '</option>'; }).join('');
+  if (items.indexOf(cur) !== -1) sel.value = cur;
+}
+
+function onVizFacultyChange() {
+  var fac = $('vizFaculty').value;
+  activeFaculty = fac || null;
+  if (fac) {
+    $('filterFaculty').value = fac;
+    renderTable(); renderChips();
+  }
+  renderVizCharts();
+}
+
+function destroyAllCharts() {
+  Object.keys(charts).forEach(function (k) {
+    try { charts[k].destroy(); } catch (e) {}
+    delete charts[k];
+  });
+}
+
+function makeChartBox(id, hint) {
+  var div = document.createElement('div');
+  div.className = 'chart-box';
+  div.innerHTML = '<canvas id="' + id + '"></canvas><div class="chart-hint">' + hint + '</div>';
+  return div;
+}
+
+function renderVizCharts() {
+  var grid = $('vizGrid');
+  if (!grid) return;
+
+  destroyAllCharts();
+  grid.innerHTML = '';
+
+  var vizFac = $('vizFaculty').value;
+  var baseData = getFilteredData();
+  var focused = vizFac ? baseData.filter(function (d) { return d.mentor === vizFac; }) : baseData;
+
+  if (vizFac) {
+    var done = focused.filter(function (d) { return d.followUp.trim(); }).length;
+    var rate = focused.length ? (done / focused.length * 100).toFixed(0) : 0;
+    $('vizContext').innerHTML = '<b>' + escapeHtml(vizFac) + '</b> · ' + focused.length +
+      ' students · ' + done + ' follow-ups done · ' + rate + '% completion';
+  } else {
+    $('vizContext').innerHTML = 'Showing <b>all faculty</b> · ' + baseData.length +
+      ' students — click any chart element to drill down';
+  }
+
+  if (!focused.length) {
+    grid.innerHTML = '<div class="fp-empty">No students match the current filters.</div>';
+    return;
+  }
+
+  if (!vizFac) {
+    grid.appendChild(makeChartBox('vizStacked', '🎯 Follow-up status by faculty — click to drill down'));
+    grid.appendChild(makeChartBox('vizRate', '🏆 Faculty completion rate % — click to drill down'));
+    grid.appendChild(makeChartBox('vizSemWise', '📚 Semester-wise average attendance'));
+    grid.appendChild(makeChartBox('vizThreshold', '📊 Attendance distribution'));
+    setTimeout(function () {
+      drawFacultyStacked('vizStacked', baseData);
+      drawFacultyRate('vizRate', baseData);
+      drawSemWise('vizSemWise', baseData);
+      drawThresholdAll('vizThreshold', baseData);
+    }, 30);
+    $('facultyPanel').classList.remove('open');
+    return;
+  }
+
+  grid.appendChild(makeChartBox('vizFollowStatus', '✅ Follow-up status for ' + escapeHtml(shortName(vizFac, 28))));
+  grid.appendChild(makeChartBox('vizFacultySem', '👥 Students per semester'));
+  grid.appendChild(makeChartBox('vizFacultyAttendance', '📈 This vs Last week attendance'));
+  grid.appendChild(makeChartBox('vizFacultyThreshold', '📊 Attendance distribution'));
+  setTimeout(function () {
+    drawFollowStatusDoughnut('vizFollowStatus', focused, vizFac);
+    drawFacultySemesterBar('vizFacultySem', focused);
+    drawFacultyAttendanceBySem('vizFacultyAttendance', focused);
+    drawThresholdFocused('vizFacultyThreshold', focused, vizFac);
+  }, 30);
+
+  renderFacultyPanel(vizFac);
+}
+
+function drawFacultyStacked(id, data) {
+  var el = $(id); if (!el) return;
+  var byFac = {};
+  data.forEach(function (d) {
+    var f = d.mentor || 'Unassigned';
+    if (!byFac[f]) byFac[f] = { done: 0, pending: 0 };
+    if (d.followUp.trim()) byFac[f].done++; else byFac[f].pending++;
+  });
+  var labels = Object.keys(byFac).sort();
+
+  charts[id] = new Chart(el, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        { label: 'Done', data: labels.map(function (f) { return byFac[f].done; }), backgroundColor: '#22c55e', borderRadius: 4 },
+        { label: 'Pending', data: labels.map(function (f) { return byFac[f].pending; }), backgroundColor: '#f59e0b', borderRadius: 4 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+      plugins: {
+        title: { display: true, text: 'Follow-up Status by Faculty', font: { size: 13 } },
+        tooltip: { callbacks: { afterLabel: function (ctx) {
+          var f = labels[ctx.dataIndex];
+          var total = byFac[f].done + byFac[f].pending;
+          var pct = total ? ((ctx.parsed.x / total) * 100).toFixed(0) : 0;
+          return pct + '% of ' + total;
+        } } }
+      },
+      scales: { x: { stacked: true, beginAtZero: true }, y: { stacked: true } },
+      onClick: function (evt, elements) {
+        if (elements.length > 0) {
+          $('vizFaculty').value = labels[elements[0].index];
+          onVizFacultyChange();
+        }
+      },
+      onHover: function (evt, elements) {
+        evt.native.target.style.cursor = elements.length ? 'pointer' : 'default';
+      }
+    }
+  });
+}
+
+function drawFacultyRate(id, data) {
+  var el = $(id); if (!el) return;
+  var byFac = {};
+  data.forEach(function (d) {
+    var f = d.mentor || 'Unassigned';
+    if (!byFac[f]) byFac[f] = { done: 0, total: 0 };
+    byFac[f].total++;
+    if (d.followUp.trim()) byFac[f].done++;
+  });
+  var labels = Object.keys(byFac).sort(function (a, b) {
+    var ra = byFac[a].total ? byFac[a].done / byFac[a].total : 0;
+    var rb = byFac[b].total ? byFac[b].done / byFac[b].total : 0;
+    return rb - ra;
+  });
+  var values = labels.map(function (f) {
+    return byFac[f].total ? +(byFac[f].done / byFac[f].total * 100).toFixed(1) : 0;
+  });
+  var colors = values.map(function (v) {
+    return v >= 75 ? '#22c55e' : v >= 50 ? '#f59e0b' : v >= 25 ? '#fb923c' : '#ef4444';
+  });
+
+  charts[id] = new Chart(el, {
+    type: 'bar',
+    data: { labels: labels, datasets: [{ label: 'Completion %', data: values, backgroundColor: colors, borderRadius: 4 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+      plugins: {
+        legend: { display: false },
+        title: { display: true, text: 'Faculty Completion Rate %', font: { size: 13 } },
+        tooltip: { callbacks: {
+          label: function (ctx) { return ctx.parsed.x + '%'; },
+          afterLabel: function (ctx) {
+            var f = labels[ctx.dataIndex];
+            return byFac[f].done + ' of ' + byFac[f].total + ' done';
+          }
+        } }
+      },
+      scales: { x: { beginAtZero: true, max: 100, ticks: { callback: function (v) { return v + '%'; } } } },
+      onClick: function (evt, elements) {
+        if (elements.length > 0) {
+          $('vizFaculty').value = labels[elements[0].index];
+          onVizFacultyChange();
+        }
+      },
+      onHover: function (evt, elements) {
+        evt.native.target.style.cursor = elements.length ? 'pointer' : 'default';
+      }
+    }
+  });
+}
+
+function drawSemWise(id, data) {
+  var el = $(id); if (!el) return;
+  var map = {};
+  data.forEach(function (d) {
+    var s = d.sem || '—';
+    if (!map[s]) map[s] = { thisSum: 0, lastSum: 0, cnt: 0 };
+    map[s].thisSum += d.thisWeekP;
+    map[s].lastSum += d.lastWeekP;
+    map[s].cnt++;
+  });
+  var labels = Object.keys(map).sort();
+  var thisAvg = labels.map(function (s) { return (map[s].thisSum / map[s].cnt).toFixed(1); });
+  var lastAvg = labels.map(function (s) { return (map[s].lastSum / map[s].cnt).toFixed(1); });
+
+  charts[id] = new Chart(el, {
+    type: 'bar',
+    data: {
+      labels: labels.map(function (s) { return 'Sem ' + s; }),
+      datasets: [
+        { label: 'This Week', data: thisAvg, backgroundColor: '#2563eb', borderRadius: 4 },
+        { label: 'Last Week', data: lastAvg, backgroundColor: '#94a3b8', borderRadius: 4 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        title: { display: true, text: 'Semester-wise Avg Attendance', font: { size: 13 } },
+        tooltip: { callbacks: {
+          label: function (ctx) { return ctx.dataset.label + ': ' + ctx.parsed.y + '%'; },
+          afterLabel: function (ctx) { return 'Students: ' + map[labels[ctx.dataIndex]].cnt; }
+        } }
+      },
+      scales: { y: { beginAtZero: true, max: 100, ticks: { callback: function (v) { return v + '%'; } } } },
+      onClick: function (evt, elements) {
+        if (elements.length > 0) {
+          $('filterSem').value = labels[elements[0].index];
+          renderTable(); renderChips();
+          renderVizCharts();
+        }
+      },
+      onHover: function (evt, elements) {
+        evt.native.target.style.cursor = elements.length ? 'pointer' : 'default';
+      }
+    }
+  });
+}
+
+function drawThresholdAll(id, data) {
+  var el = $(id); if (!el) return;
+  var low  = data.filter(function (d) { return d.thisWeekP < 50; }).length;
+  var mid  = data.filter(function (d) { return d.thisWeekP >= 50 && d.thisWeekP < 75; }).length;
+  var high = data.filter(function (d) { return d.thisWeekP >= 75; }).length;
+
+  charts[id] = new Chart(el, {
+    type: 'doughnut',
+    data: {
+      labels: ['<50%', '50-75%', '≥75%'],
+      datasets: [{ data: [low, mid, high], backgroundColor: ['#ef4444', '#f59e0b', '#22c55e'], borderWidth: 2, borderColor: '#fff' }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        title: { display: true, text: 'Attendance Distribution', font: { size: 13 } },
+        tooltip: { callbacks: { label: function (ctx) {
+          var total = data.length || 1;
+          var pct = ((ctx.parsed / total) * 100).toFixed(1);
+          return ctx.label + ': ' + ctx.parsed + ' (' + pct + '%)';
+        } } }
+      }
+    }
+  });
+}
+
+function drawFollowStatusDoughnut(id, data, faculty) {
+  var el = $(id); if (!el) return;
+  var done = data.filter(function (d) { return d.followUp.trim(); }).length;
+  var pending = data.length - done;
+
+  charts[id] = new Chart(el, {
+    type: 'doughnut',
+    data: {
+      labels: ['✅ Done', '⏳ Pending'],
+      datasets: [{ data: [done, pending], backgroundColor: ['#22c55e', '#f59e0b'], borderWidth: 2, borderColor: '#fff' }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        title: { display: true, text: 'Follow-up Status — ' + shortName(faculty, 28), font: { size: 13 } },
+        tooltip: { callbacks: { label: function (ctx) {
+          var total = data.length || 1;
+          var pct = ((ctx.parsed / total) * 100).toFixed(1);
+          return ctx.parsed + ' students (' + pct + '%)';
+        } } }
+      },
+      onClick: function (evt, elements) {
+        if (elements.length > 0) {
+          $('filterFollowUp').value = elements[0].index === 0 ? 'has' : 'none';
+          renderTable(); renderChips();
+        }
+      },
+      onHover: function (evt, elements) {
+        evt.native.target.style.cursor = elements.length ? 'pointer' : 'default';
+      }
+    }
+  });
+}
+
+function drawFacultySemesterBar(id, data) {
+  var el = $(id); if (!el) return;
+  var map = {};
+  data.forEach(function (d) {
+    var s = d.sem || '—';
+    if (!map[s]) map[s] = { total: 0, done: 0 };
+    map[s].total++;
+    if (d.followUp.trim()) map[s].done++;
+  });
+  var labels = Object.keys(map).sort();
+  var counts = labels.map(function (s) { return map[s].total; });
+  var colors = labels.map(function (s) {
+    var r = map[s].total ? map[s].done / map[s].total * 100 : 0;
+    return r >= 75 ? '#22c55e' : r >= 50 ? '#f59e0b' : r >= 25 ? '#fb923c' : '#ef4444';
+  });
+
+  charts[id] = new Chart(el, {
+    type: 'bar',
+    data: { labels: labels.map(function (s) { return 'Sem ' + s; }),
+            datasets: [{ label: 'Students', data: counts, backgroundColor: colors, borderRadius: 6 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        title: { display: true, text: 'Students by Semester', font: { size: 13 } },
+        tooltip: { callbacks: { afterLabel: function (ctx) {
+          var s = labels[ctx.dataIndex];
+          var r = map[s].total ? (map[s].done / map[s].total * 100).toFixed(0) : 0;
+          return 'Follow-ups: ' + map[s].done + '/' + map[s].total + ' (' + r + '%)';
+        } } }
+      },
+      scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+      onClick: function (evt, elements) {
+        if (elements.length > 0) {
+          $('filterSem').value = labels[elements[0].index];
+          renderTable(); renderChips();
+          renderVizCharts();
+        }
+      },
+      onHover: function (evt, elements) {
+        evt.native.target.style.cursor = elements.length ? 'pointer' : 'default';
+      }
+    }
+  });
+}
+
+function drawFacultyAttendanceBySem(id, data) {
+  var el = $(id); if (!el) return;
+  var map = {};
+  data.forEach(function (d) {
+    var s = d.sem || '—';
+    if (!map[s]) map[s] = { thisSum: 0, lastSum: 0, cnt: 0 };
+    map[s].thisSum += d.thisWeekP;
+    map[s].lastSum += d.lastWeekP;
+    map[s].cnt++;
+  });
+  var labels = Object.keys(map).sort();
+  var thisAvg = labels.map(function (s) { return (map[s].thisSum / map[s].cnt).toFixed(1); });
+  var lastAvg = labels.map(function (s) { return (map[s].lastSum / map[s].cnt).toFixed(1); });
+
+  charts[id] = new Chart(el, {
+    type: 'bar',
+    data: {
+      labels: labels.map(function (s) { return 'Sem ' + s; }),
+      datasets: [
+        { label: 'This Week', data: thisAvg, backgroundColor: '#2563eb', borderRadius: 4 },
+        { label: 'Last Week', data: lastAvg, backgroundColor: '#94a3b8', borderRadius: 4 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        title: { display: true, text: 'Attendance: This vs Last Week', font: { size: 13 } },
+        tooltip: { callbacks: {
+          label: function (ctx) { return ctx.dataset.label + ': ' + ctx.parsed.y + '%'; },
+          afterLabel: function (ctx) { return 'Students: ' + map[labels[ctx.dataIndex]].cnt; }
+        } }
+      },
+      scales: { y: { beginAtZero: true, max: 100, ticks: { callback: function (v) { return v + '%'; } } } }
+    }
+  });
+}
+
+function drawThresholdFocused(id, data, faculty) {
+  var el = $(id); if (!el) return;
+  var low  = data.filter(function (d) { return d.thisWeekP < 50; }).length;
+  var mid  = data.filter(function (d) { return d.thisWeekP >= 50 && d.thisWeekP < 75; }).length;
+  var high = data.filter(function (d) { return d.thisWeekP >= 75; }).length;
+
+  charts[id] = new Chart(el, {
+    type: 'doughnut',
+    data: {
+      labels: ['<50%', '50-75%', '≥75%'],
+      datasets: [{ data: [low, mid, high], backgroundColor: ['#ef4444', '#f59e0b', '#22c55e'], borderWidth: 2, borderColor: '#fff' }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        title: { display: true, text: 'Attendance Distribution — ' + shortName(faculty, 28), font: { size: 13 } },
+        tooltip: { callbacks: { label: function (ctx) {
+          var total = data.length || 1;
+          var pct = ((ctx.parsed / total) * 100).toFixed(1);
+          return ctx.parsed + ' students (' + pct + '%)';
+        } } }
+      },
+      onClick: function (evt, elements) {
+        if (elements.length > 0 && elements[0].index === 0) {
+          $('filterThreshold').checked = true;
+          renderTable(); renderChips();
+        }
+      },
+      onHover: function (evt, elements) {
+        evt.native.target.style.cursor = elements.length ? 'pointer' : 'default';
+      }
+    }
+  });
+}
+
+/* =========================================================
+   FACULTY DETAIL PANEL
+   ========================================================= */
+function closeFacultyPanel() {
+  activeFaculty = null;
+  $('facultyPanel').classList.remove('open');
+}
+
+function renderFacultyPanel(faculty) {
+  if (!faculty) { $('facultyPanel').classList.remove('open'); return; }
+  var panel = $('facultyPanel');
+  var body = $('fpBody');
+  var statsEl = $('fpStats');
+
+  var sem = $('filterSem').value;
+  var div = $('filterDivision').value;
+  var crs = $('filterCourse').value;
+
+  var rows = mergedData.filter(function (d) {
+    if (d.mentor !== faculty) return false;
+    if (sem && d.sem !== sem) return false;
+    if (div && d.division !== div) return false;
+    if (crs && d.course !== crs) return false;
+    return true;
+  });
+
+  if (!rows.length) { panel.classList.remove('open'); return; }
+
+  var total = rows.length;
+  var done = rows.filter(function (d) { return d.followUp.trim(); }).length;
+  var pending = total - done;
+  var below = rows.filter(function (d) { return d.thresholdFlag; }).length;
+  var avgThis = rows.reduce(function (s, d) { return s + d.thisWeekP; }, 0) / total;
+  var avgLast = rows.reduce(function (s, d) { return s + d.lastWeekP; }, 0) / total;
+  var rate = total ? (done / total * 100) : 0;
+
+  $('fpTitle').textContent = 'Mentor: ' + faculty + ' (' + total + ' students)';
+  statsEl.innerHTML =
+    '<div class="fp-stat"><div class="v">' + total + '</div><div class="l">Students</div></div>' +
+    '<div class="fp-stat"><div class="v" style="color:#22c55e">' + done + '</div><div class="l">Follow-Ups Done</div></div>' +
+    '<div class="fp-stat"><div class="v" style="color:#f59e0b">' + pending + '</div><div class="l">Pending</div></div>' +
+    '<div class="fp-stat"><div class="v" style="color:' + (rate >= 75 ? '#22c55e' : rate >= 50 ? '#f59e0b' : '#ef4444') + '">' + rate.toFixed(0) + '%</div><div class="l">Completion</div></div>' +
+    '<div class="fp-stat"><div class="v" style="color:#ef4444">' + below + '</div><div class="l">Below Threshold</div></div>' +
+    '<div class="fp-stat"><div class="v">' + avgThis.toFixed(1) + '%</div><div class="l">Avg This</div></div>' +
+    '<div class="fp-stat"><div class="v">' + avgLast.toFixed(1) + '%</div><div class="l">Avg Last</div></div>';
+
+  var withRemark = rows.filter(function (d) { return d.followUp.trim(); });
+  var withoutRemark = rows.filter(function (d) { return !d.followUp.trim(); });
+
+  var html = '';
+  if (withRemark.length) {
+    html += '<h3 style="margin:0 0 8px 0;font-size:.95rem;color:#15803d">✅ With Follow-Up Remarks (' + withRemark.length + ')</h3><div class="fp-remark-list">';
+    withRemark.forEach(function (d) {
+      html += '<div class="fp-remark"><div class="name">' + escapeHtml(d.studentName) + '</div>' +
+        '<div class="enr">' + escapeHtml(d.enrollment) + ' · This ' + d.thisWeekP.toFixed(1) + '% · Last ' + d.lastWeekP.toFixed(1) + '%</div>' +
+        '<div class="txt">"' + escapeHtml(d.followUp) + '"</div></div>';
+    });
+    html += '</div>';
+  }
+  if (withoutRemark.length) {
+    html += '<h3 style="margin:16px 0 8px 0;font-size:.95rem;color:#a16207">⏳ Pending Follow-Up (' + withoutRemark.length + ')</h3><div class="fp-remark-list">';
+    withoutRemark.forEach(function (d) {
+      html += '<div class="fp-remark" style="border-left-color:#f59e0b"><div class="name">' + escapeHtml(d.studentName) + '</div>' +
+        '<div class="enr">' + escapeHtml(d.enrollment) + ' · This ' + d.thisWeekP.toFixed(1) + '% · Last ' + d.lastWeekP.toFixed(1) + '%</div></div>';
+    });
+    html += '</div>';
+  }
+  if (!html) html = '<div class="fp-empty">No students for this faculty with the current filters.</div>';
+  body.innerHTML = html;
+  panel.classList.add('open');
+}
+
+/* =========================================================
+   REPORTS
+   ========================================================= */
+function populateReportFilters() {
+  var sel = $('reportSemFilter');
+  var cur = sel.value;
+  var seen = {}, items = [];
+  mergedData.forEach(function (d) {
+    if (d.sem && !seen[d.sem]) { seen[d.sem] = 1; items.push(d.sem); }
+  });
+  items.sort();
+  sel.innerHTML = '<option value="">All Semesters</option>' +
+    items.map(function (s) { return '<option value="' + escapeHtml(s) + '">Sem ' + escapeHtml(s) + '</option>'; }).join('');
+  if (items.indexOf(cur) !== -1) sel.value = cur;
+}
+
+function getReportData() {
+  var fu  = $('reportFollowUpFilter').value;
+  var sem = $('reportSemFilter').value;
+  var belowOnly = $('reportBelowOnly').checked;
+
+  return mergedData.filter(function (d) {
+    if (fu === 'has' && !d.followUp.trim()) return false;
+    if (fu === 'none' && d.followUp.trim()) return false;
+    if (sem && d.sem !== sem) return false;
+    if (belowOnly && !d.thresholdFlag) return false;
+    return true;
+  });
+}
+
+function computeStats_(rows) {
+  var total   = rows.length;
+  var done    = rows.filter(function (d) { return (d.followUp || '').trim(); }).length;
+  var pending = total - done;
+  var rate    = total ? (done / total * 100) : 0;
+  var below   = rows.filter(function (d) { return d.thresholdFlag; }).length;
+  var avgThis = total ? rows.reduce(function (s, d) { return s + d.thisWeekP; }, 0) / total : 0;
+  var avgLast = total ? rows.reduce(function (s, d) { return s + d.lastWeekP; }, 0) / total : 0;
+  return { total: total, done: done, pending: pending, rate: rate, below: below, avgThis: avgThis, avgLast: avgLast };
+}
+
+function statCardHtml_(title, icon, st) {
+  var rateCls = st.rate >= 75 ? 'green' : st.rate >= 50 ? 'orange' : 'red';
+  return '<div class="stat-card">' +
+    '<div class="stat-card-head" title="' + escapeHtml(title) + '">' + icon + ' ' + escapeHtml(title) + '</div>' +
+    '<ul class="stat-list">' +
+      '<li><b>' + st.total + '</b><span>Students</span></li>' +
+      '<li class="green"><b>' + st.done + '</b><span>Done</span></li>' +
+      '<li class="orange"><b>' + st.pending + '</b><span>Pending</span></li>' +
+      '<li class="' + rateCls + '"><b>' + st.rate.toFixed(0) + '%</b><span>Completion</span></li>' +
+      '<li class="red"><b>' + st.below + '</b><span>Below ' + threshold + '%</span></li>' +
+      '<li><b>' + st.avgThis.toFixed(1) + '%</b><span>Avg This</span></li>' +
+      '<li><b>' + st.avgLast.toFixed(1) + '%</b><span>Avg Last</span></li>' +
+    '</ul>' +
+  '</div>';
+}
+
+/* ---------------------------------------------------------
+   ★ NEW: Faculty Engagement — who gave remarks
+   --------------------------------------------------------- */
+function renderFacultyEngagement(data) {
+  var wrap = $('facultyEngagement');
+  var body = $('facultyEngagementBody');
+  if (!wrap || !body) return;
+
+  if (!data || !data.length) {
+    wrap.style.display = 'none';
+    body.innerHTML = '';
+    return;
+  }
+
+  var byFac = {};
+  data.forEach(function (d) {
+    var f = d.mentor || 'Unassigned';
+    if (!byFac[f]) byFac[f] = { total: 0, done: 0 };
+    byFac[f].total++;
+    if (d.followUp && d.followUp.trim()) byFac[f].done++;
+  });
+
+  var keys = Object.keys(byFac).sort();
+
+  var active = [], inactive = [];
+  keys.forEach(function (k) {
+    var o = byFac[k];
+    o.name = k;
+    o.pct = o.total ? (o.done / o.total * 100) : 0;
+    if (o.done > 0) active.push(o); else inactive.push(o);
+  });
+
+  active.sort(function (a, b) { return b.done - a.done; });
+  inactive.sort(function (a, b) { return a.name.localeCompare(b.name); });
+
+  var html = '';
+  html += '<div class="engage-badges">' +
+    '<span class="engage-badge active">✅ Active Faculty <span class="num">' + active.length + '</span></span>' +
+    '<span class="engage-badge inactive">⏳ Inactive Faculty (0 remarks) <span class="num">' + inactive.length + '</span></span>' +
+  '</div>';
+
+  if (active.length) {
+    html += '<h4 style="margin:12px 0 6px;font-size:.88rem;color:#15803d">' +
+            '✅ Faculty who gave at least one remark (' + active.length + ')</h4>';
+    html += '<table class="engage-table"><thead><tr>' +
+      '<th>#</th><th>Faculty</th><th>Students</th><th>Remarks Given</th><th>Pending</th><th>Coverage</th></tr></thead><tbody>';
+    active.forEach(function (o, i) {
+      var pctCls = o.pct >= 75 ? 'high' : o.pct >= 50 ? 'mid' : 'low';
+      html += '<tr class="active-row">' +
+        '<td>' + (i + 1) + '</td>' +
+        '<td><b>' + escapeHtml(o.name) + '</b></td>' +
+        '<td>' + o.total + '</td>' +
+        '<td style="color:#15803d;font-weight:700">' + o.done + '</td>' +
+        '<td>' + (o.total - o.done) + '</td>' +
+        '<td><span class="pct-pill ' + pctCls + '">' + o.pct.toFixed(0) + '%</span></td>' +
+      '</tr>';
+    });
+    html += '</tbody></table>';
+  }
+
+  if (inactive.length) {
+    html += '<h4 style="margin:16px 0 6px;font-size:.88rem;color:#a16207">' +
+            '⏳ Faculty who have NOT given any remark (' + inactive.length + ')</h4>';
+    html += '<table class="engage-table"><thead><tr>' +
+      '<th>#</th><th>Faculty</th><th>Students</th><th>Remarks Given</th><th>Pending</th><th>Coverage</th></tr></thead><tbody>';
+    inactive.forEach(function (o, i) {
+      html += '<tr class="inactive-row">' +
+        '<td>' + (i + 1) + '</td>' +
+        '<td><b>' + escapeHtml(o.name) + '</b></td>' +
+        '<td>' + o.total + '</td>' +
+        '<td style="color:#b91c1c;font-weight:700">0</td>' +
+        '<td>' + o.total + '</td>' +
+        '<td><span class="pct-pill zero">0%</span></td>' +
+      '</tr>';
+    });
+    html += '</tbody></table>';
+  }
+
+  body.innerHTML = html;
+  wrap.style.display = 'block';
+}
+
+function renderReportSummary(data) {
+  var el = $('reportSummary');
+  if (!el) return;
+  if (!data || !data.length) { el.innerHTML = ''; return; }
+
+  var groupBy = function (keyFn) {
+    var m = {};
+    data.forEach(function (d) {
+      var k = keyFn(d) || '—';
+      if (!m[k]) m[k] = [];
+      m[k].push(d);
+    });
+    return m;
+  };
+
+  var byFac = groupBy(function (d) { return d.mentor || 'Unassigned'; });
+  var bySem = groupBy(function (d) { return d.sem ? 'Sem ' + d.sem : ''; });
+
+  var html = '';
+
+  html += '<div class="report-summary-section"><div class="rs-title">🏫 Overall Summary</div><div class="stat-cards">' +
+    statCardHtml_('All Students', '📊', computeStats_(data)) + '</div></div>';
+
+  var facKeys = Object.keys(byFac).sort();
+  html += '<div class="report-summary-section"><div class="rs-title">👥 Faculty-wise Summary (' + facKeys.length + ')</div><div class="stat-cards">' +
+    facKeys.map(function (f) { return statCardHtml_(f, '👤', computeStats_(byFac[f])); }).join('') + '</div></div>';
+
+  var semKeys = Object.keys(bySem).sort();
+  if (semKeys.length) {
+    html += '<div class="report-summary-section"><div class="rs-title">📚 Semester-wise Summary (' + semKeys.length + ')</div><div class="stat-cards">' +
+      semKeys.map(function (s) { return statCardHtml_(s, '📚', computeStats_(bySem[s])); }).join('') + '</div></div>';
+  }
+
+  el.innerHTML = html;
+}
+
+function renderReport() {
+  var container = $('reportContainer');
+  if (!container) return;
+  var type = $('reportType').value;
+  var data = getReportData();
+
+  var metaEl = $('reportMeta');
+  metaEl.innerHTML = '📅 Generated on ' + new Date().toLocaleString() + ' · <b>' + data.length + '</b> students in report';
+
+  // Faculty engagement section
+  renderFacultyEngagement(data);
+
+  // Summary cards
+  renderReportSummary(data);
+
+  if (!data.length) {
+    container.innerHTML = '<div class="fp-empty">No students match the current report filters.</div>';
+    return;
+  }
+
+  if (type === 'faculty') renderFacultyWiseReport(container, data);
+  else renderStudentWiseReport(container, data);
+}
+
+function renderFacultyWiseReport(container, data) {
+  var byFac = {};
+  data.forEach(function (d) {
+    var f = d.mentor || 'Unassigned';
+    if (!byFac[f]) byFac[f] = [];
+    byFac[f].push(d);
+  });
+
+  var faculties = Object.keys(byFac).sort();
+  var html = '';
+
+  faculties.forEach(function (fac) {
+    var rows = byFac[fac];
+    var total = rows.length;
+    var done = rows.filter(function (d) { return d.followUp.trim(); }).length;
+    var pending = total - done;
+    var below = rows.filter(function (d) { return d.thresholdFlag; }).length;
+    var avgThis = rows.reduce(function (s, d) { return s + d.thisWeekP; }, 0) / total;
+    var avgLast = rows.reduce(function (s, d) { return s + d.lastWeekP; }, 0) / total;
+    var rate = total ? (done / total * 100) : 0;
+    var rateCls = rate >= 75 ? 'green' : rate >= 50 ? 'orange' : 'red';
+
+    html += '<div class="faculty-report-card">' +
+      '<div class="frc-head"><div class="frc-name">👤 ' + escapeHtml(fac) + '</div>' +
+      '<div class="frc-chips">' +
+        '<span class="frc-chip blue">' + total + ' Students</span>' +
+        '<span class="frc-chip green">' + done + ' Done</span>' +
+        '<span class="frc-chip orange">' + pending + ' Pending</span>' +
+        '<span class="frc-chip ' + rateCls + '">' + rate.toFixed(0) + '% Completion</span>' +
+        '<span class="frc-chip red">' + below + ' Below ' + threshold + '%</span>' +
+        '<span class="frc-chip">Avg This: ' + avgThis.toFixed(1) + '%</span>' +
+        '<span class="frc-chip">Avg Last: ' + avgLast.toFixed(1) + '%</span>' +
+      '</div></div>' +
+      '<table class="student-report-table"><thead><tr>' +
+      '<th>#</th><th>Enrollment</th><th>Student Name</th>' +
+      '<th>Course</th><th>Sem</th><th>Division</th>' +
+      '<th>This %</th><th>Last %</th><th>Diff</th>' +
+      '<th>Follow-Up Remark</th></tr></thead><tbody>';
+
+    rows.sort(function (a, b) { return a.studentName.localeCompare(b.studentName); })
+      .forEach(function (d, i) {
+        var remark = d.followUp.trim()
+          ? '<span style="color:#15803d;font-weight:600">✔ ' + escapeHtml(d.followUp) + '</span>'
+          : '<span style="color:#a16207;font-style:italic">— pending —</span>';
+        html += '<tr><td>' + (i + 1) + '</td><td>' + escapeHtml(d.enrollment) + '</td>' +
+          '<td>' + escapeHtml(d.studentName) + '</td>' +
+          '<td>' + escapeHtml(d.course || '') + '</td>' +
+          '<td>' + escapeHtml(d.sem || '') + '</td>' +
+          '<td>' + escapeHtml(d.division || '') + '</td>' +
+          '<td>' + d.thisWeekP.toFixed(1) + '%</td>' +
+          '<td>' + d.lastWeekP.toFixed(1) + '%</td>' +
+          '<td>' + (d.diff > 0 ? '+' : '') + d.diff.toFixed(1) + '%</td>' +
+          '<td>' + remark + '</td></tr>';
+      });
+
+    html += '</tbody></table></div>';
+  });
+
+  container.innerHTML = html;
+}
+
+function renderStudentWiseReport(container, data) {
+  var rows = data.slice().sort(function (a, b) {
+    var fa = a.mentor || '';
+    var fb = b.mentor || '';
+    if (fa !== fb) return fa.localeCompare(fb);
+    return a.studentName.localeCompare(b.studentName);
+  });
+
+  var html = '<table class="student-report-table"><thead><tr>' +
+    '<th>#</th><th>Enrollment</th><th>Student Name</th>' +
+    '<th>Mentor</th><th>Course</th><th>Sem</th><th>Division</th>' +
+    '<th>This %</th><th>Last %</th><th>Diff</th>' +
+    '<th>Below?</th><th>Follow-Up Remark</th></tr></thead><tbody>';
+
+  rows.forEach(function (d, i) {
+    var below = d.thresholdFlag
+      ? '<span style="color:#b91c1c;font-weight:700">Yes</span>'
+      : '<span style="color:#15803d">No</span>';
+    var remark = d.followUp.trim()
+      ? '<span style="color:#15803d">' + escapeHtml(d.followUp) + '</span>'
+      : '<span style="color:#a16207;font-style:italic">— pending —</span>';
+    html += '<tr><td>' + (i + 1) + '</td>' +
+      '<td>' + escapeHtml(d.enrollment) + '</td>' +
+      '<td>' + escapeHtml(d.studentName) + '</td>' +
+      '<td>' + escapeHtml(d.mentor || '') + '</td>' +
+      '<td>' + escapeHtml(d.course || '') + '</td>' +
+      '<td>' + escapeHtml(d.sem || '') + '</td>' +
+      '<td>' + escapeHtml(d.division || '') + '</td>' +
+      '<td>' + d.thisWeekP.toFixed(1) + '%</td>' +
+      '<td>' + d.lastWeekP.toFixed(1) + '%</td>' +
+      '<td>' + (d.diff > 0 ? '+' : '') + d.diff.toFixed(1) + '%</td>' +
+      '<td>' + below + '</td>' +
+      '<td>' + remark + '</td></tr>';
+  });
+
+  html += '</tbody></table>';
+  container.innerHTML = html;
+}
+
+function printReport() { window.print(); }
+
+function exportReportExcel() {
+  var data = getReportData();
+  var type = $('reportType').value;
+
+  if (type === 'faculty') {
+    var flat = data.map(function (d) {
+      return {
+        'Mentor': d.mentor, 'Enrollment No': d.enrollment, 'Student Name': d.studentName,
+        'Course': d.course, 'Semester': d.sem, 'Division': d.division,
+        'This Week %': d.thisWeekP, 'Last Week %': d.lastWeekP, 'Difference': d.diff,
+        'Below Threshold': d.thresholdFlag ? 'Yes' : 'No', 'Follow-Up Remark': d.followUp
+      };
+    });
+    var ws = XLSX.utils.json_to_sheet(flat);
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Faculty-Wise Report');
+    XLSX.writeFile(wb, 'FacultyWiseReport_' + new Date().toISOString().slice(0,10) + '.xlsx');
+  } else {
+    var flat2 = data.map(function (d) {
+      return {
+        'Enrollment No': d.enrollment, 'Student Name': d.studentName, 'Mentor': d.mentor,
+        'Course': d.course, 'Semester': d.sem, 'Division': d.division,
+        'This Week %': d.thisWeekP, 'Last Week %': d.lastWeekP, 'Difference': d.diff,
+        'Below Threshold': d.thresholdFlag ? 'Yes' : 'No', 'Follow-Up Remark': d.followUp
+      };
+    });
+    var ws2 = XLSX.utils.json_to_sheet(flat2);
+    var wb2 = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb2, ws2, 'Student-Wise Report');
+    XLSX.writeFile(wb2, 'StudentWiseReport_' + new Date().toISOString().slice(0,10) + '.xlsx');
+  }
+}
+
+/* =========================================================
+   ACTIONS
+   ========================================================= */
+function saveAllFollowUps() {
+  var fab = $('fabSave');
+  fab.classList.add('saving');
+  fab.innerHTML = '<span class="fab-icon">⏳</span> Saving...';
+  setStatus('Saving follow-ups...');
+
+  var payload = mergedData.map(function (d) {
+    return {
+      enrollment: d.enrollment, studentName: d.studentName, mentor: d.mentor,
+      course: d.course, sem: d.sem, division: d.division,
+      thisWeekP: d.thisWeekP, lastWeekP: d.lastWeekP, diff: d.diff,
+      thresholdFlag: d.thresholdFlag, followUp: d.followUp
+    };
+  });
+
+  google.script.run
+    .withSuccessHandler(function (res) {
+      fab.classList.remove('saving');
+      fab.innerHTML = '<span class="fab-icon">💾</span> Save Follow-Ups';
+      if (res.success) setStatus('✅ Saved ' + res.saved + ' follow-ups to the mentor spreadsheet.');
+      else setStatus('❌ ' + res.error);
+      persistLocal();
+    })
+    .withFailureHandler(function (err) {
+      fab.classList.remove('saving');
+      fab.innerHTML = '<span class="fab-icon">💾</span> Save Follow-Ups';
+      setStatus('❌ ' + err.message);
+    })
+    .saveBulkFollowUp(payload);
+}
+
+function exportToExcel() {
+  var data = getFilteredData().map(function (d) {
+    return {
+      'Enrollment No': d.enrollment, 'Student Name': d.studentName, 'Mentor': d.mentor,
+      'Course': d.course, 'Semester': d.sem, 'Division': d.division,
+      'This Week %': d.thisWeekP, 'Last Week %': d.lastWeekP, 'Difference': d.diff,
+      'Match Type': d.matchType, 'Below Threshold': d.thresholdFlag ? 'Yes' : 'No',
+      'Follow-Up Remark': d.followUp
+    };
+  });
+  var ws = XLSX.utils.json_to_sheet(data);
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Follow-Up');
+  XLSX.writeFile(wb, 'FollowUp_' + new Date().toISOString().slice(0,10) + '.xlsx');
+}
+
+function exportToSheet() {
+  setStatus('Exporting to Google Sheet...');
+  google.script.run
+    .withSuccessHandler(function (res) {
+      if (res.success) {
+        setStatus('✅ Exported: ' + res.name);
+        window.open(res.url, '_blank');
+      } else setStatus('❌ ' + res.error);
+    })
+    .exportFollowUpToSheet(getFilteredData());
+}
+
+function clearWeek(week) {
+  if (!confirm('Clear ' + week + ' week attendance?')) return;
+  google.script.run.withSuccessHandler(function (res) {
+    if (res.success) {
+      if (week === 'this') thisWeekData = []; else lastWeekData = [];
+      persistLocal();
+      mergeData();
+      setStatus('✅ Cleared ' + week + ' week.');
+    }
+  }).clearUploadedData(week);
+}
+
+function clearFilters() {
+  ['searchInput','filterFaculty','filterCourse','filterSem','filterDivision',
+   'filterFollowUp','filterMatch'].forEach(function (id) { $(id).value = ''; });
+  $('filterThreshold').checked = false;
+  closeFacultyPanel();
+  var vz = $('vizFaculty'); if (vz) vz.value = '';
+  renderAll();
+}
+
+/* =========================================================
+   EXTRACT STUDENTS
+   ========================================================= */
+function extractStudents(rows) {
+  var students = [];
+  var currentDivision = '', currentSem = '', currentCourse = '';
+  var blocks = null;
+
+  for (var i = 0; i < Math.min(25, rows.length); i++) {
+    var t = (rows[i] || []).join(' ');
+    var m;
+    if ((m = t.match(/Semester\s*(\d+)/i))) currentSem = m[1];
+    if ((m = t.match(/(PI-[A-Za-z0-9\s.()\-]+)/))) currentCourse = m[1].trim();
+  }
+
+  var findIn = function (lower, pred) {
+    var out = [];
+    for (var j = 0; j < lower.length; j++) if (pred(lower[j])) out.push(j);
+    return out;
+  };
+
+  function detectBlocks(row) {
+    var lower = row.map(function (c) { return String(c || '').toLowerCase().trim(); });
+
+    var enrIdxs = findIn(lower, function (h) { return h.indexOf('enrollment') !== -1; });
+    if (!enrIdxs.length) return null;
+
+    var srIdxs       = findIn(lower, function (h) { return h === 'sr' || h === 'sr.' || h === 'no' || h === 'no.' || h === '#'; });
+    var rollIdxs     = findIn(lower, function (h) { return h.indexOf('roll') !== -1; });
+    var nameIdxs     = findIn(lower, function (h) { return (h.indexOf('student') !== -1 && h.indexOf('name') !== -1) || h === 'name'; });
+    var chIdxs       = findIn(lower, function (h) { return h === 'ch' || h === 'ch.' || /^ch\b/.test(h); });
+    var caIdxs       = findIn(lower, function (h) { return h === 'ca' || h === 'ca.' || /^ca\b/.test(h); });
+    var pIdxs        = findIn(lower, function (h) { return h === 'p' || h.replace(/\s/g,'') === 'p(%)' || h.replace(/\s/g,'').indexOf('p(') === 0; });
+    var guardianIdxs = findIn(lower, function (h) { return h.indexOf('guardian') !== -1; });
+    var batchIdxs    = findIn(lower, function (h) { return h.indexOf('batch') !== -1; });
+
+    var pick = function (arr, i) { return (arr[i] !== undefined ? arr[i] : -1); };
+
+    return enrIdxs.map(function (e, i) {
+      return {
+        sr:       pick(srIdxs, i),
+        enr:      e,
+        roll:     pick(rollIdxs, i),
+        name:     pick(nameIdxs, i),
+        ch:       pick(chIdxs, i),
+        ca:       pick(caIdxs, i),
+        p:        pick(pIdxs, i),
+        guardian: pick(guardianIdxs, i),
+        batch:    pick(batchIdxs, i)
+      };
+    });
+  }
+
+  for (var r = 0; r < rows.length; r++) {
+    var row = rows[r] || [];
+    var rowText = row.join(' ').trim();
+    if (!rowText) continue;
+
+    if (/^Division\s*:/i.test(rowText)) {
+      currentDivision = rowText.replace(/^Division\s*:\s*/i, '').trim();
+      blocks = null;
+      continue;
+    }
+
+    var lower = row.map(function (c) { return String(c || '').toLowerCase().trim(); });
+    var hasEnr = lower.some(function (h) { return h.indexOf('enrollment') !== -1; });
+    var hasRoll = lower.some(function (h) { return h.indexOf('roll') !== -1; });
+    if (hasEnr && hasRoll) {
+      var b = detectBlocks(row);
+      if (b) { blocks = b; continue; }
+    }
+
+    if (!blocks) continue;
+    if (/^Statistics/i.test(rowText)) { blocks = null; continue; }
+
+    blocks.forEach(function (b) {
+      var enrollment = b.enr >= 0 ? normEnr(row[b.enr]) : '';
+      if (!enrollment) return;
+
+      var srRaw = b.sr >= 0 ? String(row[b.sr] || '').trim() : '';
+      if (b.sr >= 0 && srRaw && !/^\d+$/.test(srRaw)) return;
+
+      var name = b.name >= 0 ? String(row[b.name] || '').trim() : '';
+      if (!name) return;
+      if (/statistics/i.test(name)) return;
+
+      students.push({
+        enrollment: enrollment, name: name,
+        roll:     b.roll     >= 0 ? String(row[b.roll]     || '').trim() : '',
+        guardian: b.guardian >= 0 ? String(row[b.guardian] || '').trim() : '',
+        ch: b.ch >= 0 ? parseFloat(String(row[b.ch] || '0').replace(/[^\d.\-]/g, '')) || 0 : 0,
+        ca: b.ca >= 0 ? parseFloat(String(row[b.ca] || '0').replace(/[^\d.\-]/g, '')) || 0 : 0,
+        p:  b.p  >= 0 ? parseFloat(String(row[b.p]  || '0').replace(/[^\d.\-]/g, '')) || 0 : 0,
+        division: currentDivision, sem: currentSem, course: currentCourse
+      });
+    });
+  }
+
+  return students;
+}
+</script>
+</body>
+</html>
